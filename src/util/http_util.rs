@@ -14,7 +14,7 @@ impl HttpUtil {
 }
 
 impl HttpUtil {
-    pub async fn get<T,R>(&self, url: &str, params: String) -> Result<CommonResponse<R>, reqwest::Error>
+    pub async fn get<T,R>(&self, url: &str, params: T) -> Result<CommonResponse<R>, reqwest::Error>
     where
         T: serde::Serialize ,
         R: for <'a> serde::Deserialize<'a>,
