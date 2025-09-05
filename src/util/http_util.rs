@@ -1,37 +1,39 @@
-use crate::model::app_state::AppState;
+use server::model::{common::*};
 
 pub struct HttpUtil {
-    pub app_state: AppState,
     pub url_prefix: String,
 }
 
 impl HttpUtil {
-    pub fn new(app_state: AppState) -> Self {
+    pub fn new() -> Self {
         let url_prefix = dotenvy::var("URL_PREFIX").unwrap_or("http://localhost:18080".to_string());
         Self {
-            app_state,
             url_prefix,
         }
     }
 }
 
 impl HttpUtil {
-    pub async fn get<T>(&self, url: &str) -> Result<T, reqwest::Error>
+    pub async fn get<T,R>(&self, url: &str, params: String) -> Result<CommonResponse<R>, reqwest::Error>
     where
-        T: for<'de> serde::Deserialize<'de> + serde::Serialize,
+        T: serde::Serialize ,
+        R: for <'a> serde::Deserialize<'a>,
     {
         let client = reqwest::Client::new();
         let resp = client
             .get(url)
+            .query(&params)
             .send()
             .await?;
-        let body = resp.json().await?;
+        let body = resp.text().await?;
+        let body: CommonResponse<R> = serde_json::from_str(&body).unwrap();
         Ok(body)
     }
 
-    pub async fn post<T>(&self, url: &str, body: T) -> Result<T, reqwest::Error>
+    pub async fn post<T, R>(&self, url: &str, body: T) -> Result<CommonResponse<R>, reqwest::Error>
     where
-        T: for<'de> serde::Deserialize<'de> + serde::Serialize,
+        T: serde::Serialize,
+        R: for<'a> serde::Deserialize<'a>,
     {
         let client = reqwest::Client::new();
         let resp = client
@@ -39,13 +41,15 @@ impl HttpUtil {
             .json(&body)
             .send()
             .await?;
-        let body = resp.json().await?;
+        let body = resp.text().await?;
+        let body: CommonResponse<R> = serde_json::from_str(&body).unwrap();
         Ok(body)
     }
 
-    pub async fn put<T>(&self, url: &str, body: T) -> Result<T, reqwest::Error>
+    pub async fn put<T,R>(&self, url: &str, body: T) -> Result<CommonResponse<R>, reqwest::Error>
     where
-        T: for<'de> serde::Deserialize<'de> + serde::Serialize,
+        T: serde::Serialize + for <'a> serde::Deserialize <'a>,
+        R: serde::Serialize + for <'a> serde::Deserialize <'a>,
     {
         let client = reqwest::Client::new();
         let resp = client
@@ -53,13 +57,15 @@ impl HttpUtil {
             .json(&body)
             .send()
             .await?;
-        let body = resp.json().await?;
+        let body = resp.text().await?;
+        let body: CommonResponse<R> = serde_json::from_str(&body).unwrap();
         Ok(body)
     }
 
-    pub async fn delete<T>(&self, url: &str, body: T) -> Result<T, reqwest::Error>
+    pub async fn delete<T,R>(&self, url: &str, body: T) -> Result<CommonResponse<R>, reqwest::Error>
     where
-        T: for<'de> serde::Deserialize<'de> + serde::Serialize,
+        T: serde::Serialize + for <'a> serde::Deserialize <'a>,
+        R: serde::Serialize + for <'a> serde::Deserialize <'a>,
     {
         let client = reqwest::Client::new();
         let resp = client
@@ -67,7 +73,8 @@ impl HttpUtil {
             .json(&body)
             .send()
             .await?;
-        let body = resp.json().await?;
-        Ok(body)
+        let body = resp.text().await?;
+        let body: CommonResponse<R> = serde_json::from_str(&body).unwrap();
+        Ok(body)        
     }
 }

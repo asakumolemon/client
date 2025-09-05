@@ -498,6 +498,7 @@ dependencies = [
  "dotenvy",
  "reqwest",
  "serde",
+ "serde_json",
  "server",
  "tokio",
 ]
@@ -2295,6 +2296,7 @@ dependencies = [
  "jwt",
  "postgres",
  "serde",
+ "serde_json",
  "sqlx",
  "tokio",
 ]
