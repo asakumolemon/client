@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{model::app_state::AppState};
 use crate::util::request_util::*;
-use server::model::article::CommonArticleReq;
+use server::model::article::{Article, CommonArticleReq};
 use server::model::{common::*, user::*};
 use tokio::time::sleep;
 pub struct App{
@@ -89,10 +89,148 @@ impl App {
                 author_id: Some(1),
                 username: self.app_state.username.clone(),
                 content: None,
-                user_id: Some(1),
+                user_id: Some(self.app_state.user_id),
             },
         };
         let resp = self.request_util.get_article_by_id(req).await;
+        if let Ok(resp) = resp {
+            if resp.code == 0 {
+                if let Some(data) = resp.data {
+                    println!("{:?}", data);
+                }
+            } else {
+                println!("获取文章失败: {}", resp.msg);
+            }
+        }
+    }
+
+    pub async fn get_article_by_title(&self) {
+        let req = CommonRequest {
+            token: Some(self.app_state.token.clone()),
+            data: CommonArticleReq {
+                article_id: None,
+                article_title: Some("test".to_string()),
+                author_id: None,
+                username: self.app_state.username.clone(),
+                content: None,
+                user_id: Some(self.app_state.user_id),
+            },
+        };
+        let resp = self.request_util.get_article_by_title(req).await;
+        if let Ok(resp) = resp {
+            if resp.code == 0 {
+                if let Some(data) = resp.data {
+                    println!("{:?}", data);
+                }
+            } else {
+                println!("获取文章失败: {}", resp.msg);
+            }
+        }
+    }
+
+    pub async fn get_article_by_author_id(&self) {
+        let req = CommonRequest {
+            token: Some(self.app_state.token.clone()),
+            data: CommonArticleReq {
+                article_id: None,
+                article_title: None,
+                author_id: Some(1),
+                username: self.app_state.username.clone(),
+                content: None,
+                user_id: Some(self.app_state.user_id)
+            }
+        };
+        let resp = self.request_util.get_article_by_author_id(req).await;
+        if let Ok(resp) = resp {
+            if resp.code == 0 {
+                if let Some(data) = resp.data {
+                    println!("{:?}", data);
+                }
+            } else {
+                println!("获取文章失败: {}", resp.msg);
+            }
+        }
+    }
+
+    pub async fn create_article(&self) {
+        let req = CommonRequest {
+            token: Some(self.app_state.token.clone()),
+            data: CommonArticleReq {
+                article_id: None,
+                article_title: Some("test".to_string()),
+                author_id: None,
+                username: self.app_state.username.clone(),
+                content: Some(Article::default()),
+                user_id: Some(self.app_state.user_id),
+            }
+        };
+        let resp = self.request_util.create_article(req).await;
+        if let Ok(resp) = resp {
+            if resp.code == 0 {
+                println!("创建文章成功");
+            } else {
+                println!("创建文章失败: {}", resp.msg);
+            }
+        }
+    }
+
+    pub async fn update_article(&self) {
+        let req = CommonRequest {
+            token: Some(self.app_state.token.clone()),
+            data: CommonArticleReq {
+                article_id: Some(1),
+                article_title: None,
+                author_id: None,
+                username: self.app_state.username.clone(),
+                content: Some(Article::default()),
+                user_id: Some(self.app_state.user_id)
+            }
+        };
+        let resp = self.request_util.update_article(req).await;
+        if let Ok(resp) = resp {
+            if resp.code == 0 {
+                println!("更新文章成功");
+            } else {
+                println!("更新文章失败: {}", resp.msg);
+            }
+        }
+    }
+
+    pub async fn delete_article(&self) {
+        let req = CommonRequest {
+            token: Some(self.app_state.token.clone()),
+            data: CommonArticleReq {
+                article_id: Some(1),
+                article_title: None,
+                author_id: None,
+                username: self.app_state.username.clone(),
+                content: None,
+                user_id: Some(self.app_state.user_id)
+            }
+        };
+        let resp = self.request_util.delete_article(req).await;
+        if let Ok(resp) = resp {
+            if resp.code == 0 {
+                println!("删除文章成功");
+            } else {
+                println!("删除文章失败: {}", resp.msg);
+            }
+        }
+    }
+
+    pub async fn fetch_one(&self) {
+        let req = CommonRequest {
+            token: Some(self.app_state.token.clone()),
+            data: CommonArticleReq {
+                article_id: Some(1),
+                article_title: None,
+                author_id: None,
+                username: self.app_state.username.clone(),
+                content: None,
+                user_id: Some(self.app_state.user_id)
+            }
+        };
+        let resp = self.request_util.fetch_one(req).await;
         if let Ok(resp) = resp {
             if resp.code == 0 {
                 if let Some(data) = resp.data {
