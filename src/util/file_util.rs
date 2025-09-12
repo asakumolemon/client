@@ -25,9 +25,6 @@ pub fn write_file(title: &str, content: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{fs, path};
-    use std::path::Path;
-
     #[test]
     pub fn test() {
         let file = read_file("test.txt");

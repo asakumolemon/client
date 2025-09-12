@@ -181,8 +181,43 @@ impl App {
         let resp = self.request_util.get_article_by_title(req).await;
         if let Ok(resp) = resp {
             if resp.code == 0 {
-                if let Some(data) = resp.data {
-                    println!("{:?}", data);
+                if let Some(articles) = resp.data {
+                    if articles.is_empty() {
+                        println!("未找到相关文章");
+                        return;
+                    }
+
+                    println!("找到以下文章:");
+                    for (index, article) in articles.iter().enumerate() {
+                        println!("{}. ID: {}, 标题: {}", index + 1, article.id, article.title);
+                    }
+
+                    println!("请选择要查看的文章序号 (输入0取消):");
+                    let mut input = String::new();
+                    std::io::stdin().read_line(&mut input).expect("读取选择失败");
+                    
+                    if let Ok(choice) = input.trim().parse::<usize>() {
+                        if choice == 0 {
+                            println!("取消查看");
+                            return;
+                        }
+                        
+                        if choice > 0 && choice <= articles.len() {
+                            let selected_article = &articles[choice - 1];
+                            println!("\n文章详情:");
+                            println!("ID: {}", selected_article.id);
+                            println!("标题: {}", selected_article.title);
+                            println!("作者ID: {}", selected_article.author_id);
+                            println!("安全等级: {}", selected_article.safe_level);
+                            println!("内容:\n{}", selected_article.content);
+                        } else {
+                            println!("无效的选择");
+                        }
+                    } else {
+                        println!("请输入有效的数字");
+                    }
+                } else {
+                    println!("未找到相关文章");
                 }
             } else {
                 println!("获取文章失败: {}", resp.msg);
@@ -211,8 +246,43 @@ impl App {
         let resp = self.request_util.get_article_by_author_id(req).await;
         if let Ok(resp) = resp {
             if resp.code == 0 {
-                if let Some(data) = resp.data {
-                    println!("{:?}", data);
+                if let Some(articles) = resp.data {
+                    if articles.is_empty() {
+                        println!("该作者没有发布任何文章");
+                        return;
+                    }
+
+                    println!("作者的文章列表:");
+                    for (index, article) in articles.iter().enumerate() {
+                        println!("{}. ID: {}, 标题: {}", index + 1, article.id, article.title);
+                    }
+
+                    println!("请选择要查看的文章序号 (输入0取消):");
+                    let mut input = String::new();
+                    std::io::stdin().read_line(&mut input).expect("读取选择失败");
+                    
+                    if let Ok(choice) = input.trim().parse::<usize>() {
+                        if choice == 0 {
+                            println!("取消查看");
+                            return;
+                        }
+                        
+                        if choice > 0 && choice <= articles.len() {
+                            let selected_article = &articles[choice - 1];
+                            println!("\n文章详情:");
+                            println!("ID: {}", selected_article.id);
+                            println!("标题: {}", selected_article.title);
+                            println!("作者ID: {}", selected_article.author_id);
+                            println!("安全等级: {}", selected_article.safe_level);
+                            println!("内容:\n{}", selected_article.content);
+                        } else {
+                            println!("无效的选择");
+                        }
+                    } else {
+                        println!("请输入有效的数字");
+                    }
+                } else {
+                    println!("该作者没有发布任何文章");
                 }
             } else {
                 println!("获取文章失败: {}", resp.msg);
@@ -235,8 +305,43 @@ impl App {
         let resp = self.request_util.get_article_by_author_id(req).await;
         if let Ok(resp) = resp {
             if resp.code == 0 {
-                if let Some(data) = resp.data {
-                    println!("{:?}", data);
+                if let Some(articles) = resp.data {
+                    if articles.is_empty() {
+                        println!("您还没有发布任何文章");
+                        return;
+                    }
+
+                    println!("我的文章列表:");
+                    for (index, article) in articles.iter().enumerate() {
+                        println!("{}. ID: {}, 标题: {}", index + 1, article.id, article.title);
+                    }
+
+                    println!("请选择要查看的文章序号 (输入0取消):");
+                    let mut input = String::new();
+                    std::io::stdin().read_line(&mut input).expect("读取选择失败");
+                    
+                    if let Ok(choice) = input.trim().parse::<usize>() {
+                        if choice == 0 {
+                            println!("取消查看");
+                            return;
+                        }
+                        
+                        if choice > 0 && choice <= articles.len() {
+                            let selected_article = &articles[choice - 1];
+                            println!("\n文章详情:");
+                            println!("ID: {}", selected_article.id);
+                            println!("标题: {}", selected_article.title);
+                            println!("作者ID: {}", selected_article.author_id);
+                            println!("安全等级: {}", selected_article.safe_level);
+                            println!("内容:\n{}", selected_article.content);
+                        } else {
+                            println!("无效的选择");
+                        }
+                    } else {
+                        println!("请输入有效的数字");
+                    }
+                } else {
+                    println!("您还没有发布任何文章");
                 }
             } else {
                 println!("获取文章失败: {}", resp.msg);
@@ -271,9 +376,10 @@ impl App {
         let file_content = read_file(&filename);
         let content = Article {
             id: 0,
-            title: title.clone(),
+            title: filename.split('.').next().unwrap().to_string(),
             content: file_content,
             author_id: self.app_state.user_id,
+            file_type: filename.split('.').last().unwrap().to_string(),
             safe_level: safe_level,
         };
         let req = CommonRequest {
@@ -330,9 +436,10 @@ impl App {
         let file_content = read_file(&filename);
         let content = Article {
             id: article_id,
-            title: title.clone(),
+            title: filename.split('.').next().unwrap().to_string(),
             content: file_content,
             author_id: self.app_state.user_id,
+            file_type: filename.split('.').last().unwrap().to_string(),
             safe_level: safe_level,
         };
 
