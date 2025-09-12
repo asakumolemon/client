@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::io::Write;
 
 use crate::{model::app_state::AppState};
 use crate::util::request_util::*;
@@ -6,7 +6,6 @@ use crate::util::file_util::*;
 
 use server::model::article::{Article, CommonArticleReq};
 use server::model::{common::*, user::*};
-use tokio::time::sleep;
 pub struct App{
     pub app_state: AppState,
     pub request_util: RequestUtil,
@@ -19,18 +18,38 @@ impl App {
         Self { app_state, request_util }
     }
 
+    pub fn display_header(&self, title: &str) {
+        println!("\n========================================");
+        println!("{}", title);
+        println!("========================================");
+    }
+
     pub async fn login(&mut self) {
+        self.display_header("用户登录");
+        
         // 从命令行读取用户名
-        println!("请输入用户名:");
+        print!("请输入用户名: ");
+        std::io::stdout().flush().unwrap();
         let mut username = String::new();
         std::io::stdin().read_line(&mut username).expect("读取用户名失败");
         let username = username.trim().to_string();
 
+        if username.is_empty() {
+            println!("用户名不能为空！");
+            return;
+        }
+
         // 从命令行读取密码
-        println!("请输入密码:");
+        print!("请输入密码: ");
+        std::io::stdout().flush().unwrap();
         let mut password = String::new();
         std::io::stdin().read_line(&mut password).expect("读取密码失败");
         let password = password.trim().to_string();
+
+        if password.is_empty() {
+            println!("密码不能为空！");
+            return;
+        }
 
         let req = CommonRequest {
             token: None,
@@ -40,6 +59,7 @@ impl App {
             },
         };
         
+        println!("正在登录...");
         let resp = self.request_util.login(req).await;
         if let Ok(resp) = resp {
             match resp.data {
@@ -48,38 +68,64 @@ impl App {
                     self.app_state.token = data.token.clone();
                     self.app_state.user_id = data.user_id.unwrap();
                     self.app_state.safe_level = data.safe_level.unwrap();
-                    println!("登录成功!");
-                    sleep(Duration::from_secs(10)).await;
+                    println!("✅ 登录成功！欢迎，{}！", data.username);
                 }
                 None => {
-                    println!("登录失败");
+                    println!("❌ 登录失败：用户名或密码错误");
                 }
             }
+        } else {
+            println!("❌ 登录失败：网络错误或服务器无响应");
         }
     }
 
     pub async fn register(&self) {
+        self.display_header("用户注册");
+        
         // 从命令行读取用户名
-        println!("请输入用户名:");
+        print!("请输入用户名: ");
+        std::io::stdout().flush().unwrap();
         let mut username = String::new();
         std::io::stdin().read_line(&mut username).expect("读取用户名失败");
         let username = username.trim().to_string();
 
+        if username.is_empty() {
+            println!("用户名不能为空！");
+            return;
+        }
+
+        if username.len() < 3 {
+            println!("用户名至少需要3个字符！");
+            return;
+        }
+
         // 从命令行读取密码
-        println!("请输入密码:");
+        print!("请输入密码: ");
+        std::io::stdout().flush().unwrap();
         let mut password = String::new();
         std::io::stdin().read_line(&mut password).expect("读取密码失败");
         let password = password.trim().to_string();
 
+        if password.is_empty() {
+            println!("密码不能为空！");
+            return;
+        }
+
+        if password.len() < 6 {
+            println!("密码至少需要6个字符！");
+            return;
+        }
+
         // 从命令行读取确认密码
-        println!("请再次输入密码:");
+        print!("请再次输入密码: ");
+        std::io::stdout().flush().unwrap();
         let mut confirm_password = String::new();
         std::io::stdin().read_line(&mut confirm_password).expect("读取确认密码失败");
         let confirm_password = confirm_password.trim().to_string();
 
         // 检查两次输入的密码是否一致
         if password != confirm_password {
-            println!("两次输入的密码不一致");
+            println!("❌ 两次输入的密码不一致！");
             return;
         }
 
@@ -90,29 +136,56 @@ impl App {
                 password,
             },
         };
+        
+        println!("正在注册...");
         let resp = self.request_util.register(req).await;
         if let Ok(resp) = resp {    
             if resp.code == 0 {
-                println!("注册成功");
+                println!("✅ 注册成功！请登录您的账户。");
             } else {
-                println!("注册失败: {}", resp.msg);
+                println!("❌ 注册失败: {}", resp.msg);
             }
+        } else {
+            println!("❌ 注册失败：网络错误或服务器无响应");
         }
     }
 
     pub async fn upgrade(&self) {
+        self.display_header("升级用户安全等级");
+        
         // 从命令行读取要升级的用户名
-        println!("请输入要升级的用户名:");
+        print!("请输入要升级的用户名: ");
+        std::io::stdout().flush().unwrap();
         let mut username = String::new();
         std::io::stdin().read_line(&mut username).expect("读取用户名失败");
         let username = username.trim().to_string();
 
+        if username.is_empty() {
+            println!("用户名不能为空！");
+            return;
+        }
+
         // 从命令行读取要升级的等级
-        println!("请输入要升级的等级:");
+        print!("请输入要升级的等级 (1-10): ");
+        std::io::stdout().flush().unwrap();
         let mut safe_level = String::new();
         std::io::stdin().read_line(&mut safe_level).expect("读取等级失败");
-        let safe_level: i32 = safe_level.trim().parse().expect("请输入有效的数字");
+        
+        let safe_level: i32 = match safe_level.trim().parse() {
+            Ok(level) => {
+                if level < 1 || level > 10 {
+                    println!("等级必须在1-10之间！");
+                    return;
+                }
+                level
+            }
+            Err(_) => {
+                println!("请输入有效的数字！");
+                return;
+            }
+        };
 
+        println!("正在升级用户 {} 的安全等级到 {}...", username, safe_level);
         let req = CommonRequest {
             token: Some(self.app_state.token.clone()),
             data: UpgradeSafeLevelReq {
@@ -123,10 +196,14 @@ impl App {
         let resp = self.request_util.upgrade_safe_level(req).await;
         if let Ok(resp) = resp {
             if resp.code == 0 {
-                println!("升级成功");
+                println!("✅ 升级成功！用户 {} 的安全等级已提升到 {}", 
+                         resp.data.as_ref().unwrap().username, 
+                         resp.data.as_ref().unwrap().safe_level.unwrap_or(0));
             } else {
-                println!("升级失败: {}", resp.msg);
+                println!("❌ 升级失败: {}", resp.msg);
             }
+        } else {
+            println!("❌ 升级失败：网络错误或服务器无响应");
         }
     }
 
@@ -152,7 +229,40 @@ impl App {
         if let Ok(resp) = resp {
             if resp.code == 0 {
                 if let Some(data) = resp.data {
-                    println!("{:?}", data);
+                    println!("\n文章详情:");
+                    println!("ID: {}", data.id);
+                    println!("标题: {}", data.title);
+                    println!("作者ID: {}", data.author_id);
+                    println!("安全等级: {}", data.safe_level);
+                    
+                    println!("\n请选择查看方式:");
+                    println!("1. 直接查看内容");
+                    println!("2. 保存到本地文件");
+                    print!("请输入选择: ");
+                    std::io::stdout().flush().unwrap();
+                    
+                    let mut choice = String::new();
+                    std::io::stdin().read_line(&mut choice).expect("读取输入失败");
+                    
+                    match choice.trim() {
+                        "1" => {
+                            println!("内容:\n{}", data.content);
+                        }
+                        "2" => {
+                            let filename = format!("article_{}_{}.txt", data.id, data.title.replace(' ', "_"));
+                            let content = format!("标题: {}\n作者ID: {}\n安全等级: {}\n\n内容:\n{}", 
+                                data.title, data.author_id, data.safe_level, data.content);
+                            
+                            crate::util::file_util::write_file(&filename, &content);
+                            println!("文章已保存到文件: {}", filename);
+                        }
+                        _ => {
+                            println!("无效的选择，默认直接查看内容:");
+                            println!("内容:\n{}", data.content);
+                        }
+                    }
+                } else {
+                    println!("未找到相关文章");
                 }
             } else {
                 println!("获取文章失败: {}", resp.msg);
@@ -209,7 +319,33 @@ impl App {
                             println!("标题: {}", selected_article.title);
                             println!("作者ID: {}", selected_article.author_id);
                             println!("安全等级: {}", selected_article.safe_level);
-                            println!("内容:\n{}", selected_article.content);
+                            
+                            println!("\n请选择查看方式:");
+                            println!("1. 直接查看内容");
+                            println!("2. 保存到本地文件");
+                            print!("请输入选择: ");
+                            std::io::stdout().flush().unwrap();
+                            
+                            let mut view_choice = String::new();
+                            std::io::stdin().read_line(&mut view_choice).expect("读取输入失败");
+                            
+                            match view_choice.trim() {
+                                "1" => {
+                                    println!("内容:\n{}", selected_article.content);
+                                }
+                                "2" => {
+                                    let filename = format!("article_{}_{}.txt", selected_article.id, selected_article.title.replace(' ', "_"));
+                                    let content = format!("标题: {}\n作者ID: {}\n安全等级: {}\n\n内容:\n{}", 
+                                        selected_article.title, selected_article.author_id, selected_article.safe_level, selected_article.content);
+                                    
+                                    crate::util::file_util::write_file(&filename, &content);
+                                    println!("文章已保存到文件: {}", filename);
+                                }
+                                _ => {
+                                    println!("无效的选择，默认直接查看内容:");
+                                    println!("内容:\n{}", selected_article.content);
+                                }
+                            }
                         } else {
                             println!("无效的选择");
                         }
@@ -274,7 +410,33 @@ impl App {
                             println!("标题: {}", selected_article.title);
                             println!("作者ID: {}", selected_article.author_id);
                             println!("安全等级: {}", selected_article.safe_level);
-                            println!("内容:\n{}", selected_article.content);
+                            
+                            println!("\n请选择查看方式:");
+                            println!("1. 直接查看内容");
+                            println!("2. 保存到本地文件");
+                            print!("请输入选择: ");
+                            std::io::stdout().flush().unwrap();
+                            
+                            let mut view_choice = String::new();
+                            std::io::stdin().read_line(&mut view_choice).expect("读取输入失败");
+                            
+                            match view_choice.trim() {
+                                "1" => {
+                                    println!("内容:\n{}", selected_article.content);
+                                }
+                                "2" => {
+                                    let filename = format!("article_{}_{}.txt", selected_article.id, selected_article.title.replace(' ', "_"));
+                                    let content = format!("标题: {}\n作者ID: {}\n安全等级: {}\n\n内容:\n{}", 
+                                        selected_article.title, selected_article.author_id, selected_article.safe_level, selected_article.content);
+                                    
+                                    crate::util::file_util::write_file(&filename, &content);
+                                    println!("文章已保存到文件: {}", filename);
+                                }
+                                _ => {
+                                    println!("无效的选择，默认直接查看内容:");
+                                    println!("内容:\n{}", selected_article.content);
+                                }
+                            }
                         } else {
                             println!("无效的选择");
                         }
@@ -333,7 +495,33 @@ impl App {
                             println!("标题: {}", selected_article.title);
                             println!("作者ID: {}", selected_article.author_id);
                             println!("安全等级: {}", selected_article.safe_level);
-                            println!("内容:\n{}", selected_article.content);
+                            
+                            println!("\n请选择查看方式:");
+                            println!("1. 直接查看内容");
+                            println!("2. 保存到本地文件");
+                            print!("请输入选择: ");
+                            std::io::stdout().flush().unwrap();
+                            
+                            let mut view_choice = String::new();
+                            std::io::stdin().read_line(&mut view_choice).expect("读取输入失败");
+                            
+                            match view_choice.trim() {
+                                "1" => {
+                                    println!("内容:\n{}", selected_article.content);
+                                }
+                                "2" => {
+                                    let filename = format!("article_{}_{}.txt", selected_article.id, selected_article.title.replace(' ', "_"));
+                                    let content = format!("标题: {}\n作者ID: {}\n安全等级: {}\n\n内容:\n{}", 
+                                        selected_article.title, selected_article.author_id, selected_article.safe_level, selected_article.content);
+                                    
+                                    crate::util::file_util::write_file(&filename, &content);
+                                    println!("文章已保存到文件: {}", filename);
+                                }
+                                _ => {
+                                    println!("无效的选择，默认直接查看内容:");
+                                    println!("内容:\n{}", selected_article.content);
+                                }
+                            }
                         } else {
                             println!("无效的选择");
                         }
